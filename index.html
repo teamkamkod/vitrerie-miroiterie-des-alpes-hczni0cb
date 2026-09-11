@@ -1383,14 +1383,70 @@
     if(!a) return;                                      /* bouton seul hors nav: on laisse */
     var href = a.getAttribute('href') || '';
     if(href.charAt(0) === '#') return;                  /* ancres de section */
-    if(/^https?:|^\/\//i.test(href)) return;          /* lien externe réel */
+    if(/^https?:|^\/\//i.test(href)) return;
     e.preventDefault(); window.location.href = URL;     /* tel:, mailto:, javascript:… */
   }, true);
 })();
 </script>
-<div id="kamkod-demo-banner" style="position:fixed;bottom:0;left:0;right:0;background:#000;color:#fff;padding:12px 16px;text-align:center;z-index:9999;font-family:system-ui,sans-serif;font-size:14px;">
-  Ceci est un aperçu de votre futur site — <a href="https://checkout.kamkod.com/d/ChIJP_cKzUOni0cRG_bRetSA4bM" style="color:#FFD700;font-weight:600;">activez-le maintenant</a>
+<div id="kamkod-demo-banner" data-pid="ChIJP_cKzUOni0cRG_bRetSA4bM" data-echeance="1789291816456"
+     style="position:fixed;bottom:0;left:0;right:0;background:#111;color:#fff;z-index:9999;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;box-shadow:0 -2px 14px rgba(0,0,0,.4);">
+  <div style="max-width:920px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;">
+    <span style="flex:1;min-width:200px;font-size:13px;opacity:.8;">Aperçu de votre futur site</span>
+    <span id="kk-offre" style="font-size:14px;font-variant-numeric:tabular-nums;">Prix de lancement : <b>49,00 €</b> — encore 47h 38min 59s</span>
+    <a href="https://checkout.kamkod.com/d/ChIJP_cKzUOni0cRG_bRetSA4bM" style="background:#EA580C;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;white-space:nowrap;">Activer mon site</a>
+  </div>
 </div>
+<script>
+/* COMPTE À REBOURS DE LA BANNIÈRE (demande Alex 11/09) : le prospect passe le plus
+   de temps SUR SON SITE — l'urgence doit être ici, pas seulement sur la page de
+   vente après un clic de plus. Même mécanique que la page : fenêtre 48 h, prix de
+   lancement, et le prix plein annoncé une fois la fenêtre passée.
+   L'échéance est EMBARQUÉE à l'injection (aucune dépendance réseau) puis
+   resynchronisée depuis /api/offre toutes les 2 min (une réinitialisation de
+   fenêtre doit se propager à un site déjà déployé). */
+(function(){
+  var b = document.getElementById('kamkod-demo-banner');
+  if(!b) return;
+  var ach = parseInt(b.getAttribute('data-echeance') || '0', 10);
+  var pid = b.getAttribute('data-pid');
+  var el  = document.getElementById('kk-offre');
+  if(!el) return;
+  var T_LAUNCH = "Prix de lancement : <b>%PRIX%</b> — encore %TEMPS%";
+  var T_OVER   = "Le déploiement est passé à <b>%PRIX%</b>";
+  var PRIX_L   = "49,00 €";
+  var PRIX_O   = "98,00 €";
+  function deux(n){ return (n < 10 ? '0' : '') + n; }
+  function hms(s){
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return h + 'h ' + deux(m) + 'min ' + deux(x) + 's';
+  }
+  function rendu(){
+    var s = ach ? Math.floor((ach - Date.now()) / 1000) : 0;
+    if(s > 0){
+      el.innerHTML = T_LAUNCH.replace('%TEMPS%', hms(s)).replace('%PRIX%', PRIX_L);
+    } else {
+      el.innerHTML = T_OVER.replace('%PRIX%', PRIX_O);
+    }
+  }
+  rendu();
+  setInterval(rendu, 1000);
+  function sync(){
+    try{
+      fetch('https://checkout.kamkod.com/api/offre/' + pid, {cache:'no-store'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(d && d.echeance_ms){ ach = d.echeance_ms; }
+          if(d && d.prix_lancement){ PRIX_L = d.prix_lancement; }
+          if(d && d.prix_apres){ PRIX_O = d.prix_apres; }
+          rendu();
+        })
+        .catch(function(){});
+    }catch(e){}
+  }
+  setTimeout(sync, 5000);
+  setInterval(sync, 120000);
+})();
+</script>
 <!-- KAMKOD:DEMO_END -->
 </body>
 </html>
