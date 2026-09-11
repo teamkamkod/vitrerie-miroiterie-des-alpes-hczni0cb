@@ -1392,7 +1392,7 @@
      style="position:fixed;bottom:0;left:0;right:0;background:#111;color:#fff;z-index:9999;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;box-shadow:0 -2px 14px rgba(0,0,0,.4);">
   <div style="max-width:920px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;">
     <span style="flex:1;min-width:200px;font-size:13px;opacity:.8;">Aperçu de votre futur site</span>
-    <span id="kk-offre" style="font-size:14px;font-variant-numeric:tabular-nums;">Prix de lancement : <b>49,00 €</b> — encore 47h 38min 59s</span>
+    <span id="kk-offre" style="font-size:14px;font-variant-numeric:tabular-nums;">Prix de lancement : <b>49,00 €</b> — encore 38h 41min 18s</span>
     <a href="https://checkout.kamkod.com/d/ChIJP_cKzUOni0cRG_bRetSA4bM" style="background:#EA580C;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;white-space:nowrap;">Activer mon site</a>
   </div>
 </div>
@@ -1445,6 +1445,79 @@
   }
   setTimeout(sync, 5000);
   setInterval(sync, 120000);
+})();
+</script>
+<script>
+/* KAMKOD — mesure d'audience ANONYME et AGRÉGÉE (décision Alex 11/09).
+   Aucun cookie, aucun identifiant, aucun stockage local, aucun envoi vers un tiers :
+   on ne peut PAS reconstituer le parcours d'une personne, seulement des compteurs.
+   Retiré automatiquement si le site est acheté (strip de la surcouche). */
+(function(){
+  try{
+    var PID='ChIJP_cKzUOni0cRG_bRetSA4bM';
+    var URL='https://checkout.kamkod.com/api/comportement/'+PID;
+    var vis=0, lastIn=Date.now(), scrollMax=0, clics=0, cta=0, premier=1, vues={};
+    var mobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent||'');
+    function cache(){ return document.visibilityState==='hidden'; }
+    function temps(){
+      var n=Date.now();
+      if(!cache() && lastIn){ vis+=n-lastIn; }
+      lastIn=n;
+    }
+    function majScroll(){
+      var h=Math.max(1,(document.documentElement.scrollHeight||0)-window.innerHeight);
+      var p=Math.round(Math.min(100,((window.pageYOffset||window.scrollY||0)/h)*100));
+      if(p>scrollMax){ scrollMax=p; }
+    }
+    function majSections(){
+      var hs=document.querySelectorAll('h1,h2,h3');
+      for(var i=0;i<hs.length && i<40;i++){
+        var r=hs[i].getBoundingClientRect();
+        if(r.top<window.innerHeight && r.bottom>0){
+          var t=(hs[i].textContent||'').replace(/\s+/g,' ').trim().slice(0,60);
+          if(t){ vues[t]=(vues[t]||0)+1; }
+        }
+      }
+    }
+    function envoi(force){
+      try{
+        temps();
+        var secs=Object.keys(vues);
+        if(!force && !secs.length && !vis && !clics && !scrollMax){ return; }
+        var corps=JSON.stringify({v:1, debut:premier?1:0, temps_ms:Math.round(vis),
+          scroll_max:scrollMax, clics:clics, cta_clics:cta, mobile:mobile, sections:secs});
+        var ok=false;
+        try{
+          if(navigator.sendBeacon){ ok=navigator.sendBeacon(URL, corps); }
+          if(!ok){
+            var x=new XMLHttpRequest();
+            x.open('POST',URL,true);
+            x.setRequestHeader('Content-Type','text/plain;charset=UTF-8');
+            x.send(corps); ok=true;
+          }
+        }catch(e){}
+        if(ok){ premier=0; vis=0; clics=0; cta=0; vues={}; }
+      }catch(e){}
+    }
+    window.addEventListener('scroll',function(){try{majScroll();majSections();}catch(e){}},{passive:true});
+    document.addEventListener('click',function(ev){
+      try{
+        clics++;
+        var a=ev.target;
+        while(a && a.tagName!=='A'){ a=a.parentNode; }
+        if(a && a.getAttribute){
+          var h=a.getAttribute('href')||'';
+          if(h.indexOf('/d/')>-1 || h.indexOf('checkout.kamkod.com')>-1){ cta++; }
+        }
+      }catch(e){}
+    },true);
+    document.addEventListener('visibilitychange',function(){
+      try{ if(cache()){ envoi(false); } else { lastIn=Date.now(); } }catch(e){}
+    });
+    window.addEventListener('pagehide',function(){try{envoi(true);}catch(e){}});
+    setTimeout(function(){try{majScroll();majSections();envoi(false);}catch(e){}},3000);
+    setInterval(function(){try{majSections();envoi(false);}catch(e){}},30000);
+  }catch(e){}
 })();
 </script>
 <!-- KAMKOD:DEMO_END -->
